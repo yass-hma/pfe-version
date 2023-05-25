@@ -1,0 +1,94 @@
+.grid-container
+{
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1.8fr 5.7fr 2.5fr;
+    grid-template-rows: 9% 7% 62% 13%;
+    border: solid;
+}
+
+.header-first-grid{
+    grid-column: span 3;
+    display: flex;
+    align-items: center;
+}
+.space-working-third-grid
+{
+    grid-row: span 3;
+    background-color: #ffffff;
+    border-left: 8px  solid black;
+    border-right: 8px  solid black;
+
+}
+
+.objetcs-five-grid{
+    grid-row: span 3;
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    grid-template-rows: 10%;
+    grid-auto-rows: 10%;
+    gap: 5px;
+    overflow-y: auto;
+}
+
+.settings-six-grid{
+    grid-row: span 4;
+    overflow-y: auto;
+}
+
+.gray-color{
+    background-color: #1d1e22;
+    color: #ffffff;
+    border: 0.5px solid #2f2f2f;
+}
+
+
+.black-color{
+    background-color: black;
+    border: 0.5px solid #2f2f2f ;
+}
+
+.flex-title{
+    display:  inline-flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    background-color: #1d1e22;
+    border-top: 2px solid #34363e;
+    border-radius: 0 7px 7px 0;
+}
+
+.flex-header{
+    display:  inline-flex;
+    gap: 18px;
+    align-items: center;
+    justify-content: center;
+}
+.box-title {
+   color: blanchedalmond ;
+   font-size: 1.3rem;
+}
+
+
+.objetcs button{
+    flex-basis: 75px;
+}
+
+.button-visualiser{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.form-coord{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    border: 1px solid;
+}
+
+.param-label {
+    font-family: system-ui;
+    font-size: 1em;
+    text-transform: capitalize;
+}
