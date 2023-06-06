@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-------------------------------------------- SECTION CSS ------------------------------------------------->
-
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" 
             integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
         <link href="style.css" rel="stylesheet">
-
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <!-------------------------------------------- SECTION JSXGRAPH ------------------------------------------------->
         <link  rel= "stylesheet"  type= "text/css"  href= "jsxgraph.css"  /> 
         <script  type= "text/javascript"  src = "jsxgraphcore.js" ></script> 
@@ -60,7 +59,9 @@
             <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
             <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
         </svg>
+        
         <h3 class="box-title">Parametres</h3>
+        <i class="bi bi-alarm-clock"></i>
     </div>
     </div>
 
@@ -70,9 +71,12 @@
     
     <div class="objetcs-five-grid gray-color p-1">
         <button id="creationPoint" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#windowModal">Point</button>
-        <button id="creationSlider" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#windowModal">slider</button>
-        <button id="creationCurve" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#windowModal">polygone</button>
-    </div>
+        <button id="creationSlider" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#windowModal">Slider</button>
+        <button id="creationCurve" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#windowModal">Function</button>
+        <button id="creationLine" type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#windowModal">Line</button>
+
+      </div>
+    
 
     <!--
         ******************************************* WINDOW MODAL POUR COORDONNES OBJECTS **************************************************
@@ -109,11 +113,8 @@
             <h4 class="mb-3">Coordonnées</h4>
             <hr class="my-4">
             <form class="needs-validation" >
-                <div class="rows g-s3" >
+                <div class="rows g-s3 " >
                     <div class="inputParametres"></div>
-                    <div class="inputSelect"></div>
-                    <div class="inputColor"></div>
-                    <div class="inputCheckbox"></div>
                 </div>    
             </form>
           </div>
@@ -132,7 +133,45 @@
     <!---------------------------------------------- FIN SECTION OF BUTTON 7 GRID ---------------------------------------------->
 
     <!----------------------------------------------------- RESULTAT --------------------------------------------------------->
-
+    <div class="modal fade" id="codeModal" tabindex="-1" aria-labelledby="ModalCode" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="ModalCode">Visualisation du code</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <ul class="nav nav-tabs">
+              <li class="nav-item">
+                <a class="nav-link active" id="html-tab" data-bs-toggle="tab" href="#html">HTML</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="css-tab" data-bs-toggle="tab" href="#css">CSS</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="js-tab" data-bs-toggle="tab" href="#js">JS</a>
+              </li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="html">
+                <pre id="htmlCode"></pre>
+              </div>
+              <div class="tab-pane fade" id="css">
+                <pre id="cssCode"></pre>
+              </div>
+              <div class="tab-pane fade" id="js">
+                <pre id="jsCode"></pre>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            <button type="button" class="btn btn-primary" id="copyButton">Copier le code</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
    <!----------------------------------------------------SECTION SCRIPT-------------------------------------->
    <script src="https://code.jquery.com/jquery-3.7.0.js" integrity="sha256-JlqSTELeR4TLqP0OG9dxM7yDPqX1ox/HfgiSLBj8+kM=" crossorigin="anonymous"></script>
    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script> 
