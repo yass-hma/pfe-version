@@ -1,5 +1,5 @@
 /*
-* ******************************* *********************** Partie Global ******************** **************************
+* ******************************* *****************g****** Partie Global ******************** **************************
 */
 var objects = [];
 var isClicked = false; // c pour controler la gestion events objects 
@@ -7,11 +7,48 @@ var cmpPoint = 0;
 var cmpSlider = 0;
 var cmpFunction = 0;
 var cmpLine = 0;
+var cmpText = 0;
+var backgroundImageUrl = null;
+var picHere = false;
 
 function rgbToHex(rgb) {
     var rgbValues = rgb.match(/\d+/g).map(Number); // récupère les valeurs r, g, b
     var hex = rgbValues.map(value => value.toString(16).padStart(2, '0')).join(''); // les convertit en hexadécimal
     return '#' + hex;
+}
+function backgroundImageHandling(){
+    var html = $("#parametres .inputParametres").html();
+    var back = `
+        <div class="background row my-1" style="display:` 
+        picHere ? back += 'inline' : 'none';
+        back += `;"><div class="d-flex justify-content-between">
+                <label class="form-check-label param-label flex-item" for="same-address">Background-image :</label>
+            <div>    
+            <button type="button" class="btn btn-secondary eye-toggle" id="eye-back">
+                <i class="bi bi-eye-fill"></i>
+            </button>
+            <button type="button" class="btn btn-secondary trash-toggle" id="trash-back">
+                <i class="bi bi-trash-fill"></i>
+            </button>
+        <div>`
+
+        $("#parametres .inputParametres").html(html + back);
+
+        $('#eye-back').on('click', function() {
+            if ($('#box').css('background-image') !== 'none') {
+                $('#box').css('background-image', 'none'); 
+                $('#eye-back').find('i').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill'); 
+            } else {
+                $('#box').css('background-image', 'url(' + backgroundImageUrl + ')'); 
+                $('#eye-back').find('i').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill'); 
+                
+            }
+        });
+        $('#trash-back').on('click', function() {
+            $('#box').css('background-image', 'none');
+            picHere =false;
+            affichageParametres(getParamsGraph(null));
+        });
 }
 function isValideExprFunctionGraph(expression) {
     var lastChar = expression.slice(-1);
@@ -51,30 +88,29 @@ function isValidExpressionObject(coord) {
 }
 function isValideExpr(usedIds,expr) {
     var match;
-    var validX = true;
-    var validY = true;
+    var valid = true;
     var idRegex = /[ps][0-9]+/g; 
   
     while ((match = idRegex.exec(expr)) !== null) {
       var id = match[0];
       if (!usedIds.includes(id)) {
-        validX = false;
+        valid = false;
         break;
       }
         
       if (id.startsWith('p') && !match.input.substr(match.index + id.length).startsWith('.x') && !match.input.substr(match.index + id.length).startsWith('.y')) {
-        validX = false;
+        valid = false;
         break;
       }
       else if (id.startsWith('s') && (match.input.substr(match.index + id.length).startsWith('.y') || match.input.substr(match.index + id.length).startsWith('.x'))) {
-        validY = false;
+        valid = false;
         break;
       }
     }
-    return (validX && validY)
+    return valid;
 }  
 function isValideIdObjectExpresion(indices,coord) {
-  
+
     var usedIds=[];
   
     indices.forEach(function(index) {
@@ -137,6 +173,14 @@ function gestionShareAttribute(object) {
     $("#style").on("change",function(){
         object.setAttribute({dash: $("#style").val()});
     });
+    $("#coordn").on("change",function(){
+        object.setPosition(JXG.COORDS_BY_USER, [parseFloat($("#coordn").val()),object.coords.usrCoords[2]]);
+        board.update();
+    });
+    $("#coordp").on("change",function(){
+        object.setPosition(JXG.COORDS_BY_USER, [object.coords.usrCoords[1],parseFloat($("#coordp").val())]);
+        board.update();
+    });
 }
 function affichageObjectParametres(){
     var inputobject = '';
@@ -155,7 +199,7 @@ function affichageObjectParametres(){
                     <i class="bi bi-trash3-fill"></i>
                 </button>
             </div>
-        </div></div>`
+        </div></div><hr class="my-4">`
     });
 
     return inputobject;
@@ -178,7 +222,6 @@ function addEventsObjetcAction(){
 function affichageParametres(parametres){
     
     var contentInput = '';
-    
     parametres.forEach((param) => {
       switch (param.type) {
         case 'textarea':
@@ -197,11 +240,11 @@ function affichageParametres(parametres){
                     </div>
                     <div class="col">
                         <input type=${param.for} id="${param.attribute}n" class="form-control" value="${(param.value)[0]}"`
-                        param.for == 'text' ? contentInput += 'readonly' : contentInput += 'step="0.01"'
+                        param.readonly ? contentInput += 'readonly' : contentInput += 'step="0.01"'
                         contentInput += `></div>
                     <div class="col">
                         <input type=${param.for} id="${param.attribute}p" class="form-control" value="${(param.value)[1]}"`
-                        param.for == 'text' ? contentInput += 'readonly' : contentInput += 'step="0.01"'
+                        param.readonly ? contentInput += 'readonly' : contentInput += 'step="0.01"'
                         contentInput += `></div></div>` ;
               if(param.last)
                 contentInput += '<hr class="my-4">';
@@ -290,11 +333,12 @@ function affichageParametres(parametres){
           break;
       }
     });
-    if (parametres[0] == 'graph') 
-        contentInput += affichageObjectParametres();
+    if (parametres[0] == 'graph')
+        contentInput += affichageObjectParametres() 
     $("#parametres .inputParametres").html(contentInput);
+    if (parametres[0] == 'graph') backgroundImageHandling();
     addEventsObjetcAction();
-} 
+}
 function affichageOptionObjects(param) {
     var contentOption = '';
     contentOption +=    
@@ -384,6 +428,9 @@ function handleFormWindow() {
             case 'Line':
                 creationLineFactory();
                 break;
+            case 'Text':
+                creationTextFactory();
+                break;
             default:
                 break;
         }
@@ -404,6 +451,9 @@ $(".objetcs-five-grid button").on("click", function(event){
         case 'Line':
             affichageParametresWindow(getParamsLine(null));
             break;
+        case 'Text':
+            affichageParametresWindow(getParamsText(null));
+            break;
         default:
             alert('no handling');
             break;
@@ -422,6 +472,7 @@ var board = JXG.JSXGraph.initBoard('box',
                 showNavigation:false,
                 showCopyright:false
 });
+JXG.Options.text.useMathJax = true;	
 board.renderer.container.style.backgroundColor = "#ffffff";
 function getParamsGraph() {
     return ['graph',
@@ -559,7 +610,7 @@ yaxis.on('down',function(){
 */
 function getParamsPoint(point,bool=null){
     return ['point',
-        {type:'coord', attribute: "coord", value: point !== null ? point.coords.usrCoords.slice(1) : 0, for: ((objects.length > 0 && bool == null) || bool) ? 'text' : 'number', display : true},
+        {type:'coord', attribute: "coord", value: point !== null ? point.coords.usrCoords.slice(1) : 0, for: ((objects.length > 0 && bool == null) || bool) ? 'text' : 'number',readonly : ((objects.length > 0 && bool == null) || bool), display : true},
         {type:'number', attribute: "size-point", value: point !== null ? point.getAttribute('size') : 0,  display : true},
         {type:'number', attribute: "opacity-point", value: point !== null ? point.getAttribute('opacity') * 100: 0,display : true },
         {type:'text', attribute: "label", value: point !== null ? point.name : 0, display: true},
@@ -572,15 +623,7 @@ function getParamsPoint(point,bool=null){
     ];  
 }
 function gestionParametresPoint(point){
-  
-    $("#coordn").on("change",function(){
-        point.setPosition(JXG.COORDS_BY_USER, [parseFloat($("#coordn").val()),point.coords.usrCoords[2]]);
-        board.update();
-    });
-    $("#coordp").on("change",function(){
-        point.setPosition(JXG.COORDS_BY_USER, [point.coords.usrCoords[1],parseFloat($("#coordp").val())]);
-        board.update();
-    });
+
     $("#size-point").on("change",function(){
         point.setAttribute({size : $("#size-point").val()});
     });
@@ -910,8 +953,8 @@ function creationFunctionGraphFactory() {
 */
 function getParamsLine(line){
     return ['line',
-        {type:'coord', attribute: "point1", for: 'text'},
-        {type:'coord', attribute: "point2", for: 'text'},
+        {type:'coord', attribute: "point1", for: $('#object-base').length == 0 ? 'number' :'text'},
+        {type:'coord', attribute: "point2",  for: $('#object-base').length == 0 ? 'number' :'text'},
         {type:'number', attribute: "size-object", value : line ? line.getAttribute('strokewidth') : 0, display : true, last: true},
         {type:'number', attribute: "size-label", value : line ? line.label.getAttribute('fontsize') : 0, display : true},
         {type:'text', attribute: "label", value: line ? line.name : 0, display: true},
@@ -943,9 +986,9 @@ function handleLineDown(line){
         gestionParametresLine(line);
     });
 }
-function callFunctionLine(line) {
+function callFunctionLine(line,base) {    
     handleLineDown(line);
-    objects.push({type : 'line', object: line});
+    objects.push({type : 'line', object: line, base : base});
     $('#windowModal').modal('hide');
     affichageParametres(getParamsLine(line));
     gestionParametresLine(line);
@@ -989,13 +1032,18 @@ function creationLineFactory() {
     var point2x = $('#point2nw').val();
     var point2y = $('#point2pw').val();
     var label =  $('#labelw').val();
+    var Ids= [];
     
+    if($("#object-base").length !== 0)
+        arrayIndexObjects.forEach(function(index) {
+            Ids.push(objects[index].object.id);
+        });
     point1 = createPointLine(arrayIndexObjects,point1x,point1y);
     point2 = createPointLine(arrayIndexObjects,point2x,point2y);
     if(point1 && point2){
         try {
             line = board.create('line',[point1,point2],{id : 'l'+ ++cmpLine, withLabel : true ,name : label});
-            callFunctionLine(line);
+            callFunctionLine(line,{ids:Ids,arg1 : point1x, arg2: point1y, arg3 : point2x, arg4 : point2y});
         } catch (error) {
             alert("Erreur : Merci de verifier les expression que vous avez fournit!");
         }
@@ -1004,10 +1052,118 @@ function creationLineFactory() {
         alert("Erreur : Merci de verifier les expression que vous avez fournit!");
     } 
 }
+/*
+* ******************************* ******************* Partie Text ******************** **************************
+*/
+function getParamsText(text){
+    return ['text',
+        {type:'coord', attribute: "coord", value : text !== null ? text.coords.usrCoords.slice(1) : 0,for: text ? 'number' :'text', display : true},
+        {type:'text', attribute: "text", value : text ? text.plaintext : '', required : true, display : true},
+        {type:'number', attribute: "size-text", value : text ? text.getAttribute('strokewidth') : 0, display : true, last: true},
+        {type:'color', attribute: "color-object", value : text ? text.getAttribute('strokecolor') : 0, last : true},
+        {type:'eyes', attribute: "hide", value:text ? text.getAttribute('visible'): 0},
+        {type:'lock', attribute: "fixed",value: text ? text.getAttribute('fixed') : 0},
+    ];  
+}
+function gestionParametresText(text){
+    $("#text").on("change",function(){
+        text.setText($("#text").val());
+        board.update();
+    });   
+    $("#size-text").on("change",function(){
+        text.setAttribute({fontSize: parseInt($("#size-text").val())});
+    });  
+    gestionShareAttribute(text);
+}
+function handleTextDown(text){
+    text.on("down",function(){
+        isClicked = true;
+        affichageParametres(getParamsText(text));
+        gestionParametresText(text);
+    });
+}
+function callFunctionText(text,base) {
+    handleTextDown(text);
+    objects.push({type : 'text', object: text, base : base});
+    $('#windowModal').modal('hide');
+    affichageParametres(getParamsText(text));
+    gestionParametresText(text);
+}
+function isValidExpressText(text){
+    var regex = /^(?:[^']*$|'(?:(?:[^'\\]|\\.)*'|\((?:-?p\d+\.[xy]|-?s\d+|-?c\d+\.r|-?f\d+)(?:\s*[\+\-\*\/]\s*(?:-?p\d+\.[xy]|-?s\d+|-?c\d+\.r|-?f\d+))*\))*(?:\s*\+\s*(?:(?:[^'\\]|\\.)*'|\((?:-?p\d+\.[xy]|-?s\d+|-?c\d+\.r|-?f\d+)(?:\s*[\+\-\*\/]\s*(?:-?p\d+\.[xy]|-?s\d+|-?c\d+\.r|-?f\d+))*\))*'*)*)$/
+    return regex.test(text);
+}
+function createCoordText(arrayIndexObjects, expr) {
+    var coord = null;
+    if ($('#object-base').length !== 0 && arrayIndexObjects.length > 0  && isValidExpressionObject(expr) && isValideIdObjectExpresion(arrayIndexObjects,expr)){
+        coord = creationCoordPoint(arrayIndexObjects,expr);
+    }
+    return coord; 
+}
+function creationTextFactory() {
+    var text ;
+    var arrayIndexObjects = $('#object-base').val();
+    var coord1 = $('#coordnw').val();
+    var coord2 = $('#coordpw').val();
+    var string = $('#textw').val();
+    var Ids= [];
+    var regex = /(p\d+\.[xy]|s\d+)/;
+    var f = function (expr) {return new Function("return '" + expr + "';");}
 
+    isNaN(coord1) ? coord1 = createCoordText(arrayIndexObjects,coord1): coord1 = parseFloat(coord1);
+    isNaN(coord2) ? coord2 = createCoordText(arrayIndexObjects,coord2): coord2 = parseFloat(coord2);
+
+    if ($('#object-base').length !== 0 && arrayIndexObjects.length > 0){
+        arrayIndexObjects.forEach(function(index) {
+            Ids.push(objects[index].object.id);
+        });
+    }
+    
+    if(coord1 && coord2 && isValidExpressText(string) ){
+        if ($('#object-base').length !== 0 && arrayIndexObjects.length > 0 && isValideIdObjectExpresion(arrayIndexObjects, string) && regex.test(string)) {
+           string = creationCoordPoint(arrayIndexObjects, string);
+        }
+        else if (!regex.test(string))
+            string = f(string);
+        else{
+            alert("Erreur : Merci de verifier les expression que vous avez fournit !2");
+            return ;
+        }
+        try {
+                text = board.create('text',[coord1,coord2,string],{id : 't'+ ++cmpText,useMathJax:true});
+                callFunctionText(text,{ids:Ids,arg1 : $('#coordnw').val(), arg2: $('#coordpw').val(), arg3 :$('#textw').val()});
+            } catch (error) {
+                alert("Erreur : Merci de verifier les expression que vous avez fournit 1!");
+            }
+        }
+    else{
+        alert("Erreur : Merci de verifier les expression que vous avez fournit !2");
+    } 
+}
 /*
 * ******************************* ******************* Partie Buttons ******************** **************************
 */
+function transformExprePointVisualiser(expr,ids){
+    var transformedExpr = expr;
+    for (var i = 0; i < ids.length; i++) {
+        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.x\\b", 'g'), "point_"+ids[i]+".X()");
+        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.y\\b", 'g'), "point_"+ids[i]+".Y()");
+        if (ids[i].startsWith('s')) {
+            transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\b", 'g'), "slider_"+ids[i]+".Value()");
+        }
+    }
+    return transformedExpr;
+}
+function getCoordVisualier(coord1,coord2, ids){
+    var coord;
+    var regex = /^p\d+$/;
+    if (regex.test(coord1))
+        return 'point_'+coord1.replace(/'/g, '');
+    coord = []
+    !isNaN(coord1)? coord.push(`${coord1}`) : coord.push(`function(){return ${transformExprePointVisualiser(coord1,ids)};}`);
+    !isNaN(coord2)? coord.push(`${coord2}`) : coord.push(`function(){return ${transformExprePointVisualiser(coord2,ids)};}`);
+    return coord;
+}
 function getAxiCode(axiObje,typeAxe){
     var jsCode;
     
@@ -1059,20 +1215,10 @@ function getSliderCode(slider){
         });\n`
         return jsCode;
 }
-function transformExprePointVisualiser(expr,ids){
-    var transformedExpr = expr;
-    for (var i = 0; i < ids.length; i++) {
-        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.x\\b", 'g'), "point_"+ids[i]+".X()");
-        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.y\\b", 'g'), "point_"+ids[i]+".Y()");
-        if (ids[i].startsWith('s')) {
-            transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\b", 'g'), "slider_"+ids[i]+".Value()");
-        }
-    }
-    return transformedExpr;
-}
 function getPointCode(point,base) {
     var coordX;
     var coordY;
+    var jsCode;
 
     if (base == null){
         const pointCoords = point.coords.usrCoords.slice(1);
@@ -1084,7 +1230,6 @@ function getPointCode(point,base) {
         coordY = `function(){return ${transformExprePointVisualiser(base.coordY,base.ids)};}`
     }
 
-    var jsCode;
     jsCode = `const point_${point.id} = board.create('point', [${coordX}, ${coordY}],
         { 
             face :  '${point.getAttribute('face')}',
@@ -1142,6 +1287,55 @@ function getFunctionCode(object){
     });\n`
     return jsCode;
 }
+function getTextCode(object){
+    var coord;
+    var jsCode;
+    var text;
+    var f = function (expr) {return new Function("return " + expr + ";");}
+    var regex = /(p\d+\.[xy]|s\d+)/;
+
+    coord = getCoordVisualier(object.base.arg1, object.base.arg2, object.base.ids)
+    console.log(coord + '&&' + object.base.ids);
+    regex.test(object.base.arg3) ?text = `function(){return ${transformExprePointVisualiser(object.base.arg3,object.base.ids)};}` : text = f(`'${object.base.arg3}'`); 
+   
+    jsCode = `
+    text_${object.object.id} = board.create('text',[${coord},${text}],
+    {
+        visible : ${object.object.getAttribute("visible")},
+        fontSize : ${object.object.getAttribute('fontsize')},
+        strokeColor : '${object.object.getAttribute('strokecolor')}',
+        fixed : ${object.object.getAttribute('fixed')},
+        useMathJax :true,
+    });\n`
+    return jsCode;
+}
+function getLineCode(object){
+
+    var jsCode;
+    var coord1 = getCoordVisualier(object.base.arg1,object.base.arg2, object.base.ids);
+    var coord2 = getCoordVisualier(object.base.arg3,object.base.arg4, object.base.ids); 
+    jsCode = `
+    line_${object.object.id} = board.create('line',[`
+    typeof(getCoordVisualier(object.base.arg1,object.base.arg2, object.base.ids)) === 'string' ? jsCode += `${coord1},`: jsCode +=`[${coord1}],`
+    typeof(getCoordVisualier(object.base.arg3,object.base.arg4, object.base.ids)) === 'string' ? jsCode += `${coord2}`: jsCode +=`[${coord2}]`
+    jsCode += `],
+    {
+        dash : ${object.object.getAttribute('dash')},
+        visible : ${object.object.getAttribute("visible")},
+        withLabel : true ,
+        name : '${object.object.name}',
+        fixed : ${object.object.getAttribute('fixed')},
+        strokeWidth : ${object.object.getAttribute('strokewidth')},
+        strokeColor : '${object.object.getAttribute('strokecolor')}',
+        label : {
+            fontSize :  ${object.object.label.getAttribute('fontsize')},
+            strokecolor : '${object.object.getAttribute('label').strokecolor}',
+        },
+        straightfirst : ${object.object.getAttribute('straightfirst')},
+        straightlast :  ${object.object.getAttribute('straightlast')},
+    });\n`
+    return jsCode;
+}
 $("#copyButton").on("click", function() {
     var activeTabId = $('.nav-tabs .active').attr('href');
     var codeToCopy = $(activeTabId).text();
@@ -1155,19 +1349,20 @@ $("#copyButton").on("click", function() {
     });
 });
 $("#visualiser").on("click",function(){
-    var htmlCode = `<!DOCTYPE html>;
-    <html lang="en">;
-      <head>;
-          <meta charset="UTF-8">;
+    var htmlCode = `<!DOCTYPE html>
+    <html lang="en">
+      <head>
+          <meta charset="UTF-8">
           <!-------------------------------------------- SECTION JSXGRAPH ------------------------------------------------->;
-          <link rel="stylesheet" type="text/css" href="https://jsxgraph.org/distrib/jsxgraph.css" />;
-          <script type="text/javascript" src="https://jsxgraph.org/distrib/jsxgraphcore.js">;</script>;
-          <title>;Editor</title>;
-      </head>;
-      <body>;
-          <div id="box" >; </div >;
-      </body>;
-    </html>;`;
+          <link rel="stylesheet" type="text/css" href="https://jsxgraph.org/distrib/jsxgraph.css" />
+          <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+          <script type="text/javascript" src="https://jsxgraph.org/distrib/jsxgraphcore.js"></script>
+          <title>Editor</title>
+      </head>
+      <body>
+          <div id="box" style="background-image: ${$('#box').css('background-image')}; background-repeat:no-repeat;background-size:cover;"> </div >
+      </body>
+    </html>`;
     
     var cssCode = `#box { 
         width: 800px; 
@@ -1182,6 +1377,7 @@ $("#visualiser").on("click",function(){
     showNavigation:false,
     showCopyright:false
     });\n 
+    JXG.Options.text.useMathJax = true;	
     board.renderer.container.style.backgroundColor = "${rgbToHex(board.renderer.container.style.backgroundColor)}";\n`
 
     jsCode += getAxiCode(xaxis,'axix');
@@ -1198,6 +1394,13 @@ $("#visualiser").on("click",function(){
                 break;
             case 'functionGraph':
                 jsCode += getFunctionCode(obj);
+                break;
+            case 'text':
+                jsCode += getTextCode(obj);
+                break;
+            case 'line':
+                jsCode += getLineCode(obj);
+                break;
         }
     })
     $('#htmlCode').text(htmlCode);
@@ -1224,3 +1427,20 @@ $("#reinitialiser").on('click', function(){
 */
 affichageParametres(getParamsGraph());
 gestionParametresGraphe();
+/*
+* ************************** ******************* Partie Image background ******************** **************************
+*/
+$('#backgroundImage').on('change', function(event) {
+    var fileReader = new FileReader();
+    fileReader.onload = function() {
+        backgroundImageUrl = this.result;
+        $('#box').css('background-image','url(' + backgroundImageUrl + ')');
+        $('.background').css('display', 'inline');    
+        $(event.target).val('');
+    };
+    fileReader.readAsDataURL(event.target.files[0]);
+    picHere = true;
+});
+$('#uploadButton').on('click', function() {
+    $('#backgroundImage').click();
+});
