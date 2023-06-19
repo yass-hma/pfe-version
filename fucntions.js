@@ -8,9 +8,17 @@ var cmpSlider = 0;
 var cmpFunction = 0;
 var cmpLine = 0;
 var cmpText = 0;
+var cmpImage = 0;
+var cmpCircle = 0;
+var cmpAnimation = 0;
+var cmpPolygon = 0;
+var selectedVertices;
 var backgroundImageUrl = null;
-var picHere = false;
 
+function existeObjetc(tableau) {
+    var typesRecherches = ['point', 'image', 'slider','circle'];
+    return tableau.some(element => typesRecherches.includes(element.type));
+}  
 function rgbToHex(rgb) {
     var rgbValues = rgb.match(/\d+/g).map(Number); // récupère les valeurs r, g, b
     var hex = rgbValues.map(value => value.toString(16).padStart(2, '0')).join(''); // les convertit en hexadécimal
@@ -18,35 +26,20 @@ function rgbToHex(rgb) {
 }
 function backgroundImageHandling(){
     var html = $("#parametres .inputParametres").html();
-    var back = `
+    var back = `<hr class="my-4">
         <div class="background row my-1" style="display:` 
-        picHere ? back += 'inline' : 'none';
+        $('#box').css('background-image') !== 'none' ? back += 'inline' : back +='none';
         back += `;"><div class="d-flex justify-content-between">
                 <label class="form-check-label param-label flex-item" for="same-address">Background-image :</label>
             <div>    
-            <button type="button" class="btn btn-secondary eye-toggle" id="eye-back">
-                <i class="bi bi-eye-fill"></i>
-            </button>
             <button type="button" class="btn btn-secondary trash-toggle" id="trash-back">
                 <i class="bi bi-trash-fill"></i>
             </button>
         <div>`
-
         $("#parametres .inputParametres").html(html + back);
-
-        $('#eye-back').on('click', function() {
-            if ($('#box').css('background-image') !== 'none') {
-                $('#box').css('background-image', 'none'); 
-                $('#eye-back').find('i').removeClass('bi-eye-fill').addClass('bi-eye-slash-fill'); 
-            } else {
-                $('#box').css('background-image', 'url(' + backgroundImageUrl + ')'); 
-                $('#eye-back').find('i').removeClass('bi-eye-slash-fill').addClass('bi-eye-fill'); 
-                
-            }
-        });
         $('#trash-back').on('click', function() {
             $('#box').css('background-image', 'none');
-            picHere =false;
+            $('.background').css('display', 'none');  
             affichageParametres(getParamsGraph(null));
         });
 }
@@ -63,7 +56,7 @@ function isValideExprFunctionGraph(expression) {
         return false;
     }
 
-    var regex = /^\s*\(*\s*(-)?(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|Math\.[a-zA-Z]+(\(-?[a-zA-Z0-9]*\))?\s*|[a-zA-Z]|[0-9]+(\.[0-9]+)?)(\s*[+\-%/*]\s*\(*\s*(-)?(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|Math\.[a-zA-Z]+(\(-?[a-zA-Z0-9]*\))?\s*|[a-zA-Z]|[0-9]+(\.[0-9]+)?)\s*\)*)*\s*$/;
+    var regex = /^\s*\(*\s*(-)?(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|c[0-9]+\.r|Math\.[a-zA-Z]+(\(-?[a-zA-Z0-9]*\))?\s*|[a-zA-Z]|[0-9]+(\.[0-9]+)?)(\s*[+\-%/*]\s*\(*\s*(-)?(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|c[0-9]+\.r|Math\.[a-zA-Z]+(\(-?[a-zA-Z0-9]*\))?\s*|[a-zA-Z]|[0-9]+(\.[0-9]+)?)\s*\)*)*\s*$/;
     if (!regex.test(expression)) {
         return false;
     }
@@ -83,34 +76,32 @@ function isValideExprFunctionGraph(expression) {
     return parentheses === 0;
 }
 function isValidExpressionObject(coord) {
-    var regex = /^\s*\(*\s*(-)?(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|[0-9]+(\.[0-9]+)?)(\s*[+\-%/*]\s*\(*\s*(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|[0-9]+(\.[0-9]+)?)\s*\)*)*\s*$/;
+    var regex = /^\s*\(*\s*(-)?(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|c[0-9]+\.r|[0-9]+(\.[0-9]+)?)(\s*[+\-%/*]\s*\(*\s*(p[0-9]+\.x|p[0-9]+\.y|s[0-9]+|c[0-9]+\.r|[0-9]+(\.[0-9]+)?)\s*\)*)*\s*$/;
     return regex.test(coord);
 }
 function isValideExpr(usedIds,expr) {
     var match;
     var valid = true;
-    var idRegex = /[ps][0-9]+/g; 
-  
+    var idRegex = /(p|s|c|im)([0-9]+)/g;  
     while ((match = idRegex.exec(expr)) !== null) {
-      var id = match[0];
-      if (!usedIds.includes(id)) {
-        valid = false;
-        break;
-      }
-        
-      if (id.startsWith('p') && !match.input.substr(match.index + id.length).startsWith('.x') && !match.input.substr(match.index + id.length).startsWith('.y')) {
-        valid = false;
-        break;
-      }
-      else if (id.startsWith('s') && (match.input.substr(match.index + id.length).startsWith('.y') || match.input.substr(match.index + id.length).startsWith('.x'))) {
-        valid = false;
-        break;
-      }
+        var id = match[0];
+        if (!usedIds.includes(id)) {
+            valid = false;
+            break;
+        }
+        /*
+        if (id.startsWith('p') && !match.input.substr(match.index + id.length).startsWith('.x') && !match.input.substr(match.index + id.length).startsWith('.y')) {
+            valid = false;
+            break;
+          }
+          else if (id.startsWith('s') && (match.input.substr(match.index + id.length).startsWith('.y') || match.input.substr(match.index + id.length).startsWith('.x'))) {
+            valid = false;
+            break;
+          }*/
     }
     return valid;
 }  
 function isValideIdObjectExpresion(indices,coord) {
-
     var usedIds=[];
   
     indices.forEach(function(index) {
@@ -146,6 +137,13 @@ function gestionShareAttribute(object) {
     $("#hide-label").on("click",function(){
         updateButton($("#hide-label"),'eyes');
         object.setAttribute({withLabel : !object.getAttribute("withLabel")});
+    });
+    $("#trace").on("click",function(){
+        updateButton($("#trace"),'lock')
+        object.setAttribute({trace: !object.getAttribute("trace")});
+    });
+    $("#opacity").on("change",function(){
+        object.setAttribute({fillOpacity : parseFloat($("#opacity").val()) / 100});
     });
     $("#label").on("change",function(){
       object.setAttribute({name : $("#label").val()});
@@ -199,7 +197,7 @@ function affichageObjectParametres(){
                     <i class="bi bi-trash3-fill"></i>
                 </button>
             </div>
-        </div></div><hr class="my-4">`
+        </div></div>`
     });
 
     return inputobject;
@@ -278,6 +276,7 @@ function affichageParametres(parametres){
                   contentInput += '<hr class="my-4">';
           break;
         case 'select':
+          if(!param.display) break;
           contentInput += 
                 `<div class="row g-3 my-1">
                     <div class="col">
@@ -357,9 +356,11 @@ function affichageOptionObjects(param) {
             case 'slider':
                 contentOption += `<option value="${index}">slider-${val.object.name}-${val.object.id}</option>`
                 break;
-            case 'functionGraph':
-                if(param !== 'functionGraph') break;
-                contentOption += `<option value="${index}">function-${val.object.id}</option>`
+            case 'image':
+                contentOption += `<option value="${index}">image-${val.object.id}</option>`
+                break;
+            case 'circle':
+                contentOption += `<option value="${index}">circle-${val.object.id}</option>`
                 break;
         }
     });
@@ -368,11 +369,38 @@ function affichageOptionObjects(param) {
 }
 function affichageParametresWindow(parametres){
     var contentForm = '';
-    if(parametres[0] !== 'slider' && objects.length > 0)
+    if(parametres[0] !== 'slider' && objects.length > 0 && existeObjetc(objects))
         contentForm = affichageOptionObjects(parametres[0]);
    
     parametres.forEach((param) => {
       switch (param.type) {
+        case 'select':     
+           if (!param.win) break;
+            contentForm += 
+                  `<div class="row g-3 my-1">
+                      <div class="col">
+                          <label for="${param.attribute}" class="param-label col-form-label">${param.attribute}:</label>
+                      </div>                    
+                      <select class="form-select" id="${param.attribute}"`
+                      if (param.required ) contentForm += 'required'
+                      contentForm += `><option value="">Choisir ${param.attribute} </option>`;
+                          (param.value).forEach((val) => {
+                            contentForm += `<option value="${(val.split('#'))[1]}">${(val.split('#'))[0]}</option>`
+                          });
+                          contentForm += `</select> </div>`;
+              if(param.last)
+              contentForm += '<hr class="my-4">';
+            break;
+        case 'textarea':
+            if(!param.win) break;
+            contentForm += 
+                `<div class="mb-3">
+                    <label for="${param.attribute}" class="form-label">${param.attribute}</label>
+                    <textarea class="form-control" id="${param.attribute}w" rows="3"`
+                if(param.required) contentForm += 'required="required"'
+                contentForm += `></textarea>
+                </div>`
+            break;
         case 'coord':
                 contentForm +=
                 `<div class="row mb-3">
@@ -419,6 +447,9 @@ function handleFormWindow() {
             case 'Point':
                 creationPointFactory();
                 break;
+            case 'Polygone':
+                creationPolygonFactory();
+                break;
             case 'Slider':
                 creationSliderFactory();
                 break;
@@ -430,6 +461,15 @@ function handleFormWindow() {
                 break;
             case 'Text':
                 creationTextFactory();
+                break;
+            case 'Image':
+                creationImageFactory();
+                break;
+            case 'Animation':
+                creationAnimationFactory();
+                break;
+            case 'Circle':
+                creationCircleFactory();
                 break;
             default:
                 break;
@@ -454,8 +494,23 @@ $(".objetcs-five-grid button").on("click", function(event){
         case 'Text':
             affichageParametresWindow(getParamsText(null));
             break;
+        case 'Image':
+            affichageParametresWindow(getParamsImage(null));
+            break;
+        case 'Animation':
+            affichageParametresWindow(getParamsAnimation(null));
+            break;
+        case 'Circle':
+            affichageParametresWindow(getParamsCircle(null));
+            break;
+        case 'Polygone':
+            affichageParametresWindow(getParamsPolygon(null));
+            $("#vertices").on("change", function() {
+                selectedVertices = $(this).val().split('#')[0];
+                createCoords(selectedVertices);
+              });
+            break;
         default:
-            alert('no handling');
             break;
     }
     $('.modal-body form').attr('data-button', button);
@@ -610,9 +665,9 @@ yaxis.on('down',function(){
 */
 function getParamsPoint(point,bool=null){
     return ['point',
-        {type:'coord', attribute: "coord", value: point !== null ? point.coords.usrCoords.slice(1) : 0, for: ((objects.length > 0 && bool == null) || bool) ? 'text' : 'number',readonly : ((objects.length > 0 && bool == null) || bool), display : true},
+        {type:'coord', attribute: "coord", value: point !== null ? point.coords.usrCoords.slice(1) : 0, for: ((objects.length > 0 && existeObjetc(objects) && bool == null) || bool) ? 'text' : 'number',readonly : ((objects.length > 0 && bool == null) || bool), display : true},
         {type:'number', attribute: "size-point", value: point !== null ? point.getAttribute('size') : 0,  display : true},
-        {type:'number', attribute: "opacity-point", value: point !== null ? point.getAttribute('opacity') * 100: 0,display : true },
+        {type:'number', attribute: "opacity", value: point !== null ? point.getAttribute('opacity') * 100: 0,display : true },
         {type:'text', attribute: "label", value: point !== null ? point.name : 0, display: true},
         {type:'number', attribute: "size-label", value: point !== null ? point.label.getAttribute('fontsize') : 0, last: true ,display : true},
         {type:'select', attribute: "style-point", value: ["cross#x","circle#o","plus#+","minus#-","square#[]","diamond#<>"], last : true},
@@ -627,19 +682,14 @@ function gestionParametresPoint(point){
     $("#size-point").on("change",function(){
         point.setAttribute({size : $("#size-point").val()});
     });
-    $("#opacity-point").on("change",function(){
-        point.setAttribute({opacity : parseFloat($("#opacity-point").val()) / 100});
-    });
+   
     $("#style-point").on("change",function(){
         point.setAttribute({face: $("#style-point").val()});
     });
     $("#color-point").on("change",function(){
         point.setAttribute({color: $("#color-point").val()});
     });
-    $("#trace").on("click",function(){
-        updateButton($("#trace"),'lock')
-        point.setAttribute({trace: !point.getAttribute("trace")});
-    });
+    
     gestionShareAttribute(point);
 }
 function handlePointDrag(point){
@@ -690,7 +740,7 @@ function transformExpression(expr, ids,indexMap) {
     for (var i = 0; i < ids.length; i++) {
         transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.x\\b", 'g'), "objects[" + indexMap[ids[i]] + "].object.X()");
         transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.y\\b", 'g'), "objects[" + indexMap[ids[i]] + "].object.Y()");
-        
+        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.r\\b", 'g'), "objects[" + indexMap[ids[i]] + "].object.Radius()");
         if (ids[i].startsWith('s')) {
             transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\b", 'g'), "objects[" + indexMap[ids[i]] + "].object.Value()");
         }
@@ -953,8 +1003,8 @@ function creationFunctionGraphFactory() {
 */
 function getParamsLine(line){
     return ['line',
-        {type:'coord', attribute: "point1", for: $('#object-base').length == 0 ? 'number' :'text'},
-        {type:'coord', attribute: "point2",  for: $('#object-base').length == 0 ? 'number' :'text'},
+        {type:'coord', attribute: "point1", for: existeObjetc(objects)? 'text' :'number'},
+        {type:'coord', attribute: "point2",  for: existeObjetc(objects)? 'text' :'number'},
         {type:'number', attribute: "size-object", value : line ? line.getAttribute('strokewidth') : 0, display : true, last: true},
         {type:'number', attribute: "size-label", value : line ? line.label.getAttribute('fontsize') : 0, display : true},
         {type:'text', attribute: "label", value: line ? line.name : 0, display: true},
@@ -1031,7 +1081,7 @@ function creationLineFactory() {
     var point1y = $('#point1pw').val();
     var point2x = $('#point2nw').val();
     var point2y = $('#point2pw').val();
-    var label =  $('#labelw').val();
+    var label   = $('#labelw').val();
     var Ids= [];
     
     if($("#object-base").length !== 0)
@@ -1118,7 +1168,7 @@ function creationTextFactory() {
             Ids.push(objects[index].object.id);
         });
     }
-    
+
     if(coord1 && coord2 && isValidExpressText(string) ){
         if ($('#object-base').length !== 0 && arrayIndexObjects.length > 0 && isValideIdObjectExpresion(arrayIndexObjects, string) && regex.test(string)) {
            string = creationCoordPoint(arrayIndexObjects, string);
@@ -1130,7 +1180,7 @@ function creationTextFactory() {
             return ;
         }
         try {
-                text = board.create('text',[coord1,coord2,string],{id : 't'+ ++cmpText,useMathJax:true});
+                text = board.create('text',[coord1,coord2,string],{id : 't'+ ++cmpText,display:'html',CSSClass:'rotated45',parse:false,useMathJax:true});
                 callFunctionText(text,{ids:Ids,arg1 : $('#coordnw').val(), arg2: $('#coordpw').val(), arg3 :$('#textw').val()});
             } catch (error) {
                 alert("Erreur : Merci de verifier les expression que vous avez fournit 1!");
@@ -1141,6 +1191,404 @@ function creationTextFactory() {
     } 
 }
 /*
+* ******************************* ******************* Partie Image ******************** **************************
+*/
+function getParamsImage(image){
+    return ['image',
+        {type:'coord', attribute: "point1", for: $('#object-base').length == 0 ? 'number' :'text'},
+        {type:'coord', attribute: "point2",  for: $('#object-base').length == 0 ? 'number' :'text'},
+        {type:'text', attribute: "url", value : image ? image.getAttribute('url') : '', required : true},
+        {type:'eyes', attribute: "hide", value: image ? image.getAttribute('visible'): 0},
+        {type:'lock', attribute: "fixed",value: image ? image.getAttribute('fixed') : 0},
+    ];  
+}
+function gestionParametresImage(image){   
+    gestionShareAttribute(image);
+}
+function handleImageDown(image){
+    image.on("down",function(){
+        isClicked = true;
+        affichageParametres(getParamsImage(image));
+        gestionParametresImage(image);
+    });
+}
+function callFunctionImage(image,base) {
+    handleImageDown(image);
+    objects.push({type : 'image', object: image, base : base});
+    $('#windowModal').modal('hide');
+    affichageParametres(getParamsImage(image));
+    gestionParametresImage(image);
+}
+function createPointImage(arrayIndexObjects, point1x, point1y) {
+    var point = null;
+    var Ids= [];
+    if($("#object-base").length !== 0)
+        arrayIndexObjects.forEach(function(index) {
+            Ids.push(objects[index].object.id);
+        });
+
+    if (($('#object-base').length == 0) || (!isNaN(point1x)  && !isNaN(point1y))) { // for first object point : isNaN(arrayIndexObjects)
+        point = [parseFloat(point1x), parseFloat(point1y)];
+    }
+    else if (arrayIndexObjects.length > 0  && isValidExpressionObject(point1x) && isValidExpressionObject(point1y) && 
+        isValideIdObjectExpresion(arrayIndexObjects,point1x) &&  isValideIdObjectExpresion(arrayIndexObjects,point1y)){    
+        point = [creationCoordPoint(arrayIndexObjects,point1x),creationCoordPoint(arrayIndexObjects,point1y)];
+        return point;
+    }
+    return point; 
+}
+function creationImageFactory() {
+    var point1, point2,image ;
+    var arrayIndexObjects = $('#object-base').val();
+    var point1x = $('#point1nw').val();
+    var point1y = $('#point1pw').val();
+    var point2x = $('#point2nw').val();
+    var point2y = $('#point2pw').val();
+    var url =  $('#urlw').val();
+    var Ids= [];
+
+    if($("#object-base").length !== 0)
+    arrayIndexObjects.forEach(function(index) {
+        Ids.push(objects[index].object.id);
+    });
+    point1 = createPointImage(arrayIndexObjects,point1x,point1y);
+    point2 = createPointImage(arrayIndexObjects,point2x,point2y);
+    if(point1 && point2){
+        try {
+            image = board.create('image',[url,point1,point2],{id : 'im'+ ++cmpImage});
+            callFunctionImage(image,{ids:Ids,arg1 : point1x, arg2: point1y, arg3 : point2x, arg4 : point2y,url : url});
+        } catch (error) {
+            alert("Erreur : Merci de verifier les expression que vous avez fournit 1!");
+        }
+    }
+    else{
+        alert("Erreur : Merci de verifier les expression que vous avez fournit 2!");
+    } 
+}
+/*
+* ******************************* ******************* Partie Animation ******************** **************************
+*/
+function getParamsAnimation(animation){
+    return ['animation',
+        {type:'coord', attribute: "coord",value: animation !== null ? animation.coords.usrCoords.slice(1) : 0, for: $('#object-base').length == 0 ? 'number' :'text', display : true},
+        {type:'text', attribute: "name-animation", win : true, required : true},
+        {type:'textarea', attribute: "deplacement",  win : true, required : true},
+        {type:'textarea', attribute: "creation",  win : true, required : false},
+    ];  
+}
+function callFunctionAnimation(button,base) {    
+    objects.push({type : 'button', object: button, base : base});
+    $('#windowModal').modal('hide');
+}
+function modifyStringAnimation(expr) {
+    let lines = expr.split('\n'); 
+    let result = "";
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        let nextLine = lines[i + 1];
+        if (/^\d+$/.test(line)) {
+            if (nextLine && nextLine.trim() !== '') {
+                result += `setTimeout(function() {\n${nextLine}\n}, ${line* 1000} )\n`;
+                i++; 
+            }
+        } else if (line !== '') {
+            result += line + '\n';
+        }
+    }
+    return result;
+}
+function transformExpressionDeplace(expr, arrayIndexObjects) {
+    var transformedExpr = expr;
+    var indexMap= {};
+    var ids = []
+    var f = function (expr) {return new Function(expr);}    
+
+    arrayIndexObjects.forEach(function(index) {
+        indexMap[objects[index].object.id] = index;
+    });
+    arrayIndexObjects.forEach(function(index) {
+        ids.push(objects[index].object.id);
+    });
+    for (var i = 0; i < ids.length; i++) {
+        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i], 'g'), "objects[" + indexMap[ids[i]] + "].object");
+    }
+    return f(modifyStringAnimation(transformedExpr));
+}
+function creationAnimationFactory() {
+    var  coord , button;
+    var arrayIndexObjects = $('#object-base').val();
+    var coordx = $('#coordnw').val();
+    var coordy = $('#coordpw').val();
+    var name   = $('#name-animationw').val();
+    var move   = $('#deplacementw').val();
+    var regex = /(?:p|im)(\d+)\.(moveTo|visit)\(\[\d+,\d+\],\d+\)|\d+/gm;
+    var Ids= [];
+    
+    if($("#object-base").length !== 0){
+        arrayIndexObjects.forEach(function(index) {
+            Ids.push(objects[index].object.id);
+        });
+    }   
+    coord = createPointImage(arrayIndexObjects,coordx,coordy);
+    if(coord && regex.test(move) && isValideIdObjectExpresion(arrayIndexObjects,move)){
+        var f = transformExpressionDeplace(move,arrayIndexObjects) 
+        try {    
+            button = board.create('button',[coord[0],coord[1],name, f],{id : 'an'+ ++cmpAnimation});
+            callFunctionAnimation(button,{ids:Ids,arg1 : coordx, arg2: coordy});
+        } catch (error) {
+            alert("Erreur : Merci de verifier les expression que vous avez fournit!");
+        }
+    }
+    else
+        alert("Erreur : Merci de verifier les expression que vous avez fournit !");
+}
+/*
+* ******************************* ******************* Partie Circle ******************** **************************
+*/
+function getParamsCircle(circle){
+    return ['circle',
+        {type:'coord', attribute: "center", for: 'text'},
+        {type:'coord', attribute: "radius", for: 'text'},
+        {type:'number', attribute: "size-object", value : circle ? circle.getAttribute('strokewidth') : 0, display : true},
+        {type:'number', attribute: "size-label", value : circle ? circle.label.getAttribute('fontsize') : 0, display : true},
+        {type:'text', attribute: "label", value: circle ? circle.name : 0, display: true},
+        {type:'select', attribute: "style", value: ["solid line#0","dotted line#1","smalle dash#2","medium dash#3","big dashes#4","small gaps#5","large gaps#6"], last:true},
+        {type:'color', attribute: "color-object", value : circle ? circle.getAttribute('strokecolor') : 0},
+        {type:'color', attribute: "color-remplissage", value : circle ? circle.getAttribute('fillcolor') : 0},
+        {type:'color', attribute: "color-label", value : circle ? circle.getAttribute('label').strokecolor : 0, last :true},
+        {type:'eyes', attribute: "hide", value:circle ? circle.getAttribute('visible'): 0},
+        {type:'lock', attribute: "fixed",value: circle ? circle.getAttribute('fixed') : 0},
+    ];
+}
+function gestionParametresCircle(circle){
+    $("#color-remplissage").on("change",function(){
+        circle.setAttribute({fillColor: $("#color-remplissage").val()});
+      });
+
+    gestionShareAttribute(circle);
+}
+function handleCircleDown(circle){
+    circle.on("down",function(){
+        isClicked = true;
+        affichageParametres(getParamsCircle(circle));
+        gestionParametresCircle(circle);
+    });
+}
+function callFunctionCircle(circle,base) {
+    handleCircleDown(circle);
+    objects.push({type : 'circle', object: circle, base : base});
+    $('#windowModal').modal('hide');
+    affichageParametres(getParamsCircle(circle));
+    gestionParametresCircle(circle);
+}
+function createPointCircle(arrayIndexObjects, centerx, centery) {
+    var center = null;
+    var regexP = /^p\d+$/;
+    var regexC = /^c\d+$/;
+    var Ids = [];
+
+    if ($("#object-base").length !== 0) {
+        arrayIndexObjects.forEach(function(index) {
+            Ids.push(objects[index].object.id);
+        });
+    }
+
+    if (($('#object-base').length == 0) || (!isNaN(centerx) && !isNaN(centery))) {
+        center = [parseFloat(centerx), parseFloat(centery)];
+    }
+    else if (arrayIndexObjects.length > 0 && isValidExpressionObject(centerx) && isValidExpressionObject(centery) &&
+        isValideIdObjectExpresion(arrayIndexObjects, centerx) && isValideIdObjectExpresion(arrayIndexObjects, centery)) {
+        
+        center = createPoint(creationCoordPoint(arrayIndexObjects, centerx), creationCoordPoint(arrayIndexObjects, centery));
+        callFunctionPoint(center, true, { ids: Ids, coordX: centerx, coordY: centery });
+        return center;
+    }
+    else if (arrayIndexObjects.length > 0 && regexP.test(centerx) && regexP.test(centery) && centerx === centery && Ids.includes(centerx)) {
+        for (var i = 0; i < arrayIndexObjects.length; i++) {
+            var index = arrayIndexObjects[i];
+            if (objects[index].object.id === centerx) {
+                center = objects[index].object;
+                break;
+            }
+        }
+    }
+    else if (arrayIndexObjects.length > 0 && regexC.test(centerx) && regexC.test(centery) && centerx === centery && Ids.includes(centerx)) {
+        for (var i = 0; i < arrayIndexObjects.length; i++) {
+            var index = arrayIndexObjects[i];
+            if (objects[index].object.id === centerx) {
+                center = objects[index].object;
+                break;
+            }
+        }
+    }
+
+    return center; 
+}
+function creationCircleFactory() {
+    var center, radius, circle;
+    var arrayIndexObjects = $('#object-base').val();
+    var centerx = $('#centernw').val();
+    var centery = $('#centerpw').val();
+    var radiusx = $('#radiusnw').val();
+    var radiusy = $('#radiuspw').val();
+    var label = $('#labelw').val();
+    var Ids = [];
+
+    if ($("#object-base").length !== 0) {
+        arrayIndexObjects.forEach(function(index) {
+            Ids.push(objects[index].object.id);
+        });
+    }
+    center = createPointCircle(arrayIndexObjects, centerx, centery);
+    radius = createPointCircle(arrayIndexObjects, radiusx, radiusy);
+
+
+    if (center && radius) {
+        try {
+
+            circle = board.create('circle', [center, radius], { id: 'c' + ++cmpCircle, withLabel: true, name: label });
+            callFunctionCircle(circle,{ids:Ids,arg1 : centerx, arg2: centery, arg3 : radiusx, arg4 : radiusy});
+        } catch (error) {
+            alert("Erreur : Merci de vérifier les expressions que vous avez fournies !1");
+        }
+    } else {
+        alert("Erreur : Merci de vérifier les expressions que vous avez fournies !");
+    }
+}
+/*
+* ******************************* ******************* Partie Polygone ******************** **************************
+*/
+function getParamsPolygon(polygon = null) {
+    return [
+      'polygon',
+      { type: 'select', attribute: "vertices", value: ["3#3", "4#4", "5#5", "6#6", "7#7", "8#8", "9#9", "10#10"],win : true, required: true},
+      { type: 'text', attribute: "label", value: polygon ? polygon.name : 0, display: true },
+      {type:'number', attribute: "size-label", value : polygon ? polygon.label.getAttribute('fontsize') : 0, display : true},
+      { type:'number', attribute: "opacity", value: polygon !== null ? polygon.getAttribute('fillOpacity') * 100: 0,display : true , last: true},
+      { type: 'color', attribute: "color-remplissage", value: polygon ? polygon.getAttribute('fillColor') : 0 },
+      { type: 'color', attribute: "color-label", value: polygon ? polygon.getAttribute('label').strokecolor : 0 , last : true},
+      { type: 'eyes', attribute: "hide", value: polygon ? polygon.getAttribute('visible') : 0 },
+      { type: 'eyes', attribute: "hide-label", value: polygon ? polygon.getAttribute('withLabel') : 0 },
+      { type: 'eyes', attribute: "hide-border", value: polygon ? !polygon.getAttribute('borders').visible : 0 },
+      { type: 'eyes', attribute: "hide-vertice", value: polygon ? !polygon.getAttribute('vertices').visible : 0 },
+      {type:'lock', attribute: "fixed",value: polygon ? polygon.getAttribute('fixed') : 0},
+      {type:'lock', attribute: "trace",value: polygon !== null ? polygon.getAttribute('trace') : 0, last: true},
+
+    ];
+}
+function gestionParametresPolygon(polygon){
+    $("#hide-border").on("click",function(){
+        updateButton($("#hide-border"),'eyes');
+        polygon.setAttribute({borders : {visible :!polygon.getAttribute('borders').visible}});
+    });
+    $("#hide-vertice").on("click",function(){
+        updateButton($("#hide-vertice"),'eyes');
+        polygon.setAttribute({vertices : {visible : !polygon.getAttribute('vertices').visible}});
+    });
+    $("#color-remplissage").on("change",function(){
+        polygon.setAttribute({fillColor: $('#color-remplissage').val()});
+    });
+    gestionShareAttribute(polygon);
+}
+function createCoords(x) {
+    var coords = [];
+    // Générer les coordonnées en fonction du nombre de sommets
+    for (var i = 0; i < x; i++) {
+        var coord = {
+        type: 'coord',
+        attribute: 'point' + (i + 1),
+        for: objects.length>0 && existeObject(objects) ? 'text' : 'number'
+        };
+        coords.push(coord);
+    }
+    affichageParametresWindow(coords);
+}
+function existeObject(array){
+    var typeRecherches = ['point', 'circle', 'slider'];
+    return array.some(ele=>typeRecherches.includes(ele.type)); 
+} 
+function handlePolygonDown(polygon) {
+    polygon.on("down", function () {
+        isClicked = true;
+        affichageParametres(getParamsPolygon(polygon));
+        gestionParametresPolygon(polygon);
+});
+} 
+function callFunctionPolygon(polygon, base) {
+    handlePolygonDown(polygon);
+    objects.push({ type: 'polygon', object: polygon, base: base });
+    $('#windowModal').modal('hide');
+    affichageParametres(getParamsPolygon(polygon));
+    gestionParametresPolygon(polygon);
+}
+function createPointPolygon(arrayIndexObjects, point1x, point1y) {
+    var point = null;
+    var regex = /^p\d+$/;
+    var Ids = [];
+    if ($("#object-base").length !== 0)
+        arrayIndexObjects.forEach(function (index) {
+        Ids.push(objects[index].object.id);
+        });
+
+    if (($('#object-base').length == 0) || (!isNaN(point1x) && !isNaN(point1y))) { // for first object point : isNaN(arrayIndexObjects)
+        point = [parseFloat(point1x), parseFloat(point1y)];
+    }
+    else if (arrayIndexObjects.length > 0 && isValidExpressionObject(point1x) && isValidExpressionObject(point1y) &&
+        isValideIdObjectExpresion(arrayIndexObjects, point1x) && isValideIdObjectExpresion(arrayIndexObjects, point1y)) {
+
+        point = createPoint(creationCoordPoint(arrayIndexObjects, point1x), creationCoordPoint(arrayIndexObjects, point1y));
+        callFunctionPoint(point, true, { ids: Ids, coordX: point1x, coordY: point1y });
+        return point;
+    }
+    else if (arrayIndexObjects.length > 0 && regex.test(point1x) && regex.test(point1y) && point1x === point1y && Ids.includes(point1x)) {
+        for (var i = 0; i < arrayIndexObjects.length; i++) {
+        var index = arrayIndexObjects[i];
+        if (objects[index].object.id === point1x) {
+            point = objects[index].object;
+            break;
+        }
+        }
+    }
+    return point;
+}
+function creationPolygonFactory() {
+    var pointsVisualiser = [];
+    var points = [];
+    var arrayIndexObjects = $('#object-base').val();
+    var label = $('#label').val();
+    var Ids = [];
+    if ($("#object-base").length !== 0)
+        arrayIndexObjects.forEach(function (index) {
+        Ids.push(objects[index].object.id);
+        });
+
+    // Récupérer les coordonnées des sommets à partir des champs de formulaire
+    for (var i = 0; i < selectedVertices ; i++) {
+        var x = $('#point' + (i + 1) + 'nw').val();
+        var y = $('#point' + (i + 1) + 'pw').val();
+        var point = createPointPolygon(arrayIndexObjects, x, y);
+        pointsVisualiser.push([x,y]);
+        points.push(point);
+    }
+
+    // Vérifier si tous les points ont été créés avec succès
+    var allPointsCreated = points.every(function (point) {
+        return point !== null;
+    });
+
+    if (allPointsCreated) {
+        try {
+        var polygon = board.create('polygon', points, { id: 'pl' + ++cmpPolygon, withLabel: true, name: label });
+        callFunctionPolygon(polygon,{ ids: Ids, point:pointsVisualiser });
+        } catch (error) {
+        alert("Erreur : Veuillez vérifier les expressions que vous avez fournies !");
+        }
+    } else {
+        alert("Erreur : Veuillez vérifier les expressions que vous avez fournies !");
+    }
+}
+/*
 * ******************************* ******************* Partie Buttons ******************** **************************
 */
 function transformExprePointVisualiser(expr,ids){
@@ -1148,20 +1596,54 @@ function transformExprePointVisualiser(expr,ids){
     for (var i = 0; i < ids.length; i++) {
         transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.x\\b", 'g'), "point_"+ids[i]+".X()");
         transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.y\\b", 'g'), "point_"+ids[i]+".Y()");
+        transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\.r\\b", 'g'), "circle_"+ids[i]+".Radius()");
         if (ids[i].startsWith('s')) {
             transformedExpr = transformedExpr.replace(new RegExp("\\b" + ids[i] + "\\b", 'g'), "slider_"+ids[i]+".Value()");
         }
     }
     return transformedExpr;
 }
-function getCoordVisualier(coord1,coord2, ids){
+function getCoordVisualier(obj,coord1,coord2, ids,point1ou2){
     var coord;
     var regex = /^p\d+$/;
     if (regex.test(coord1))
         return 'point_'+coord1.replace(/'/g, '');
     coord = []
-    !isNaN(coord1)? coord.push(`${coord1}`) : coord.push(`function(){return ${transformExprePointVisualiser(coord1,ids)};}`);
-    !isNaN(coord2)? coord.push(`${coord2}`) : coord.push(`function(){return ${transformExprePointVisualiser(coord2,ids)};}`);
+    !isNaN(coord1)?  (point1ou2 == 1 ? coord.push(`${obj.point1.X()}`) : coord.push(`${obj.point2.X()}`)): coord.push(`function(){return ${transformExprePointVisualiser(coord1,ids)};}`);
+    !isNaN(coord2)? (point1ou2 == 1 ? coord.push(`${obj.point1.Y()}`) : coord.push(`${obj.point2.Y()}`)) : coord.push(`function(){return ${transformExprePointVisualiser(coord2,ids)};}`);
+    return coord;
+}
+function getCoordVisualierImg(obj,coord1,coord2, ids, size=null){
+    var coord = []
+    !isNaN(coord1)? (size ? coord.push(`${obj.usrSize[0]}`): coord.push(`${obj.X()}`)): coord.push(`function(){return ${transformExprePointVisualiser(coord1,ids)};}`);
+    !isNaN(coord2)? (size ? coord.push(`${obj.usrSize[1]}`): coord.push(`${obj.X()}`)) : coord.push(`function(){return ${transformExprePointVisualiser(coord2,ids)};}`);
+    return coord;
+}
+function getCoordVisualierCircle(obj,coord1,coord2, ids,raduioupoint){
+    var coord;
+    var regex  = /^p\d+$/;
+    var regexC = /^c\d+$/;
+    if (regex.test(coord1))
+        return 'point_'+coord1.replace(/'/g, '');
+    if (regexC.test(coord1)){
+        return 'circle_'+coord1.replace(/'/g, '');}
+    coord = []
+    console.log(coord1 + ' ' + coord2)
+    !isNaN(coord1)?(raduioupoint === 1 ? coord.push(`${obj.center.X()}`):coord.push(`${obj.point2.X()}`)) : coord.push(`function(){return ${transformExprePointVisualiser(coord1,ids)};}`);
+    !isNaN(coord2)?(raduioupoint === 1 ? coord.push(`${obj.center.Y()}`):coord.push(`${obj.point2.Y()}`)) : coord.push(`function(){return ${transformExprePointVisualiser(coord2,ids)};}`);
+    return coord;
+}
+function getCoordVisualierPolygon(obj, coord1, coord2, ids, nmbrePoint){
+    var coordinates = obj.borders.map(function(border) {
+        return [border.point1.X(), border.point1.Y()];
+    });
+    var coord;
+    var regex = /^p\d+$/;
+    if (regex.test(coord1))
+        return 'point_'+coord1.replace(/'/g, '');
+    coord = []
+    !isNaN(coord1)?  coord.push(`${parseFloat(coordinates[nmbrePoint][0])}`) : coord.push(`function(){return ${transformExprePointVisualiser(coord1,ids)};}`);
+    !isNaN(coord2)?  coord.push(`${parseFloat(coordinates[nmbrePoint][1])}`) : coord.push(`function(){return ${transformExprePointVisualiser(coord2,ids)};}`);
     return coord;
 }
 function getAxiCode(axiObje,typeAxe){
@@ -1312,12 +1794,12 @@ function getTextCode(object){
 function getLineCode(object){
 
     var jsCode;
-    var coord1 = getCoordVisualier(object.base.arg1,object.base.arg2, object.base.ids);
-    var coord2 = getCoordVisualier(object.base.arg3,object.base.arg4, object.base.ids); 
+    var coord1 = getCoordVisualier(object.object,object.base.arg1,object.base.arg2, object.base.ids,1);
+    var coord2 = getCoordVisualier(object.object,object.base.arg3,object.base.arg4, object.base.ids,2); 
     jsCode = `
     line_${object.object.id} = board.create('line',[`
-    typeof(getCoordVisualier(object.base.arg1,object.base.arg2, object.base.ids)) === 'string' ? jsCode += `${coord1},`: jsCode +=`[${coord1}],`
-    typeof(getCoordVisualier(object.base.arg3,object.base.arg4, object.base.ids)) === 'string' ? jsCode += `${coord2}`: jsCode +=`[${coord2}]`
+    typeof(getCoordVisualier(object.object,object.base.arg1,object.base.arg2, object.base.ids,1)) === 'string' ? jsCode += `${coord1},`: jsCode +=`[${coord1}],`
+    typeof(getCoordVisualier(object.object,object.base.arg3,object.base.arg4, object.base.ids,2)) === 'string' ? jsCode += `${coord2}`: jsCode +=`[${coord2}]`
     jsCode += `],
     {
         dash : ${object.object.getAttribute('dash')},
@@ -1336,6 +1818,78 @@ function getLineCode(object){
     });\n`
     return jsCode;
 }
+function getImageCode(object){
+
+    var jsCode;
+    var coord1 = getCoordVisualierImg(object.object,object.base.arg1,object.base.arg2, object.base.ids);
+    var coord2 = getCoordVisualierImg(object.object,object.base.arg3,object.base.arg4, object.base.ids,'size'); 
+    jsCode = `
+    image_${object.object.id} = board.create('image',["${object.base.url}",[${coord1}],[${coord2}]],
+    {
+        visible : ${object.object.getAttribute("visible")},
+        fixed : ${object.object.getAttribute('fixed')},
+    });\n`
+    return jsCode;
+}
+function getCircleCode(object){
+
+    var jsCode;
+    var coord1 = getCoordVisualierCircle(object.object,object.base.arg1,object.base.arg2,object.base.ids,1);
+    var coord2 = getCoordVisualierCircle(object.object,object.base.arg3,object.base.arg4,object.base.ids,2); 
+    jsCode = `
+    circle_${object.object.id} = board.create('circle',[`
+    typeof(coord1) === 'string' ? jsCode += `${coord1},`: jsCode +=`[${coord1}],`
+    typeof(coord2) === 'string' ? jsCode += `${coord2}`: jsCode +=`[${coord2}]`
+    jsCode += `],
+    {
+        dash : ${object.object.getAttribute('dash')},
+        visible : ${object.object.getAttribute("visible")},
+        withLabel : true ,
+        name : '${object.object.name}',
+        fixed : ${object.object.getAttribute('fixed')},
+        strokeWidth : ${object.object.getAttribute('strokewidth')},
+        strokeColor : '${object.object.getAttribute('strokecolor')}',
+        label : {
+            fontSize :  ${object.object.label.getAttribute('fontsize')},
+            strokecolor : '${object.object.getAttribute('label').strokecolor}',
+        },
+        fillColor : '${object.object.getAttribute('fillcolor')}'
+        
+    });\n`
+    return jsCode;
+}
+function getPolygonCode(object){
+    var jsCode;
+    var pointPoly= '';
+    for(i=0; i<object.object.vertices.length -1; i++){
+        var coord = getCoordVisualierPolygon(object.object, object.base.point[i][0], object.base.point[i][1], object.base.ids,i);
+        if(i == object.object.vertices.length-2){
+            typeof(coord) === 'string' ? pointPoly += `${coord},` : pointPoly += `[${coord}]`
+        }else {
+            typeof(coord) === 'string' ? pointPoly += `${coord},` : pointPoly += `[${coord}],`
+        }
+    }
+
+    jsCode = `
+    polygon_${object.object.id} = board.create('polygon',[${pointPoly}],
+    {
+        visible : ${object.object.getAttribute("visible")},  
+        name: '${object.object.name}',
+        trace : ${object.object.getAttribute("trace")},
+        fillColor: '${object.object.getAttribute("fillColor")}', 
+        fillOpacity: ${object.object.getAttribute("fillOpacity")},        
+        fixed: ${object.object.getAttribute("fixed")},            
+        withLabel: ${object.object.getAttribute("withLabel")},  
+        label : {
+            fontSize :  ${object.object.label.getAttribute('fontsize')},
+            strokecolor : '${object.object.getAttribute('label').strokecolor}',
+        }, 
+        name : '${object.object.name}',
+        vertices: {visible : ${typeof(object.object.getAttribute('vertices').visible) === 'string' ? true : false}},
+        borders: {visible : ${typeof(object.object.getAttribute('borders').visible) === 'string' ? true : false}},
+    });\n`;
+    return jsCode;
+}
 $("#copyButton").on("click", function() {
     var activeTabId = $('.nav-tabs .active').attr('href');
     var codeToCopy = $(activeTabId).text();
@@ -1351,17 +1905,21 @@ $("#copyButton").on("click", function() {
 $("#visualiser").on("click",function(){
     var htmlCode = `<!DOCTYPE html>
     <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <!-------------------------------------------- SECTION JSXGRAPH ------------------------------------------------->;
-          <link rel="stylesheet" type="text/css" href="https://jsxgraph.org/distrib/jsxgraph.css" />
-          <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-          <script type="text/javascript" src="https://jsxgraph.org/distrib/jsxgraphcore.js"></script>
-          <title>Editor</title>
-      </head>
-      <body>
-          <div id="box" style="background-image: ${$('#box').css('background-image')}; background-repeat:no-repeat;background-size:cover;"> </div >
-      </body>
+        <head>
+            <meta charset="UTF-8">
+            <!-------------------------------------------- SECTION JSXGRAPH ------------------------------------------------->;
+            <link rel="stylesheet" type="text/css" href="https://jsxgraph.org/distrib/jsxgraph.css" />
+            <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+            <script type="text/javascript" src="https://jsxgraph.org/distrib/jsxgraphcore.js"></script>
+            <title>Editor</title>
+        </head>
+        <body>
+            <div id="box" style="background-image: ${$('#box').css('background-image')}; background-repeat:no-repeat;background-size:cover;"> </div >
+            <img src="./start1.png" width="50" height="50" title="reactualise"
+            onclick="startAnimation1();" data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">
+            <img src="./reset.png" width="50" height="50" title="reactualise" onclick="document.location.reload();" 
+            data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">
+        </body>
     </html>`;
     
     var cssCode = `#box { 
@@ -1392,6 +1950,9 @@ $("#visualiser").on("click",function(){
             case 'slider':
                 jsCode += getSliderCode(obj.object);
                 break;
+            case 'polygon':
+                jsCode += getPolygonCode(obj);
+                break;
             case 'functionGraph':
                 jsCode += getFunctionCode(obj);
                 break;
@@ -1400,6 +1961,12 @@ $("#visualiser").on("click",function(){
                 break;
             case 'line':
                 jsCode += getLineCode(obj);
+                break;
+            case 'image':
+                jsCode += getImageCode(obj);
+                break;
+            case 'circle':
+                jsCode += getCircleCode(obj);
                 break;
         }
     })
