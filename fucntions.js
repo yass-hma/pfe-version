@@ -751,19 +751,19 @@ function gestionParametresGraphe(){
     var yNegative = parseFloat(coordYNegative.val());
     var yPositive = parseFloat(coordYPositive.val());
     coordXNegative.on("change", function(){
-        xNegative = parseFloat(coordXNegative.val()) ;
+        xNegative = parseFloat(coordXNegative.val()).toFixed(2);
         board.setBoundingBox([xNegative, xPositive, yPositive, yNegative]);
     });
     coordXPositive.on("change", function(){
-        xPositive =parseFloat(coordXPositive.val()) ;
+        xPositive =parseFloat(coordXPositive.val()).toFixed(2);
         board.setBoundingBox([xNegative, xPositive, yPositive, yNegative]);
     });
     coordYNegative.on("change", function(){
-        yNegative = parseFloat(coordYNegative.val()) ;
+        yNegative = parseFloat(coordYNegative.val()).toFixed(2) ;
         board.setBoundingBox([xNegative, xPositive, yPositive, yNegative]);
     });
     coordYPositive.on("change", function(){
-        yPositive = parseFloat(coordYPositive.val()) ;
+        yPositive = parseFloat(coordYPositive.val()).toFixed(2);
         board.setBoundingBox([xNegative, xPositive, yPositive, yNegative]);
     });
     // gestion les attributs boolean checkbox
@@ -2455,13 +2455,9 @@ $("#visualiser").on("click",function(){
         <body>
             <div id="box" style="background-image: ${$('#box').css('background-image')}; background-repeat:no-repeat;background-size:cover;"> </div >`
             if (functionsMoveAnimation !== '')  htmlCode +=`<img src="./start.png" width="50" height="50" title="reactualise" 
-            onclick="startAnimation();" data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">
-            <img src="./reset.png" width="50" height="50" title="reactualise" onclick="document.location.reload();"
-             data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">`
+            onclick="startAnimation();" data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">`
             else if (functionsMoveAnimation === '' && functionsCreationAnimation !== '')  htmlCode +=`<img src="./start.png" width="50" height="50" title="reactualise" 
-             onclick="nextStep();" data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">
-             <img src="./reset.png" width="50" height="50" title="reactualise" onclick="document.location.reload();"
-              data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">`
+             onclick="nextStep();" data-toggle="tooltip" style="text-decoration:none;cursor:pointer;">`
             htmlCode +=`</body>
     </html>`;
     
@@ -2580,10 +2576,32 @@ function extractTypes(code) {
   
     return types;
 }
-function supprimerNextStep(code) {
-    const regex = /function nextStep\(\)[\s\S]+?\n\}/g;
-    const modifiedCode = code.replace(regex, '');
-    return modifiedCode;
+function supprimerNextStep(str) {
+    var startIdx = str.indexOf("function nextStep() {") + 20;
+    var endIndex = str.lastIndexOf("}");
+    
+    var openBracketsCount = 0;
+    var closedBracketsCount = 0;
+    if (str.indexOf("function nextStep() {") > 0 || str.includes('nextStep()')){
+        for (var i = startIdx; i <= endIndex; i++) {
+        if (str[i] === "{") {
+            openBracketsCount++;
+            if (openBracketsCount === 1) {
+            startIdx = i + 1;
+            }
+        } else if (str[i] === "}") {
+            closedBracketsCount++;
+            
+            if (openBracketsCount === closedBracketsCount) {
+            endIndex = i;
+            break;
+            }
+        }
+        }
+        const animationCode = str.slice(startIdx, endIndex).trim();
+        str = str.substring(0, startIdx) + str.substring(endIndex + 1);
+    }
+    return str;
 }
 function extraireCreations(code) {
     const regex = /board\.create\([\s\S]+?}\);/g;
@@ -2612,6 +2630,13 @@ function replaceObjectsInString(str) {
     }
     }).replace(/slider_s(\d+)/g, function(match, number) {
     var index = findIndex("s" + number);
+    if (index !== -1) {
+      return "objects[" + index + "].object";
+    } else {
+      return match; 
+    }
+  }).replace(/image_im(\d+)/g, function(match, number) {
+    var index = findIndex("im" + number);
     if (index !== -1) {
       return "objects[" + index + "].object";
     } else {
@@ -2801,7 +2826,8 @@ $('#importerInput').on('change', function(event) {
         var importedCode = this.result;
         var creationObjects = extraireCreations(supprimerNextStep(importedCode));
         var variablesTypes = extractTypes(supprimerNextStep(importedCode));   
-
+        console.log(creationObjects)
+        console.log(variablesTypes)
         board.setBoundingBox(getBoundingBoxFunction(importedCode));
         variablesTypes.forEach((obj,index) => {
         switch(obj){
